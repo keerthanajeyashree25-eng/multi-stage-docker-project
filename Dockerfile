@@ -1,31 +1,33 @@
-FROM python:3.12-slim-bookworm AS builder
+FROM python:3.12-alpine AS builder
 
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
 WORKDIR /build
+
 COPY requirements.txt .
 RUN python -m pip install --no-cache-dir --prefix=/install -r requirements.txt
 
-FROM python:3.12-slim-bookworm AS runtime
+FROM python:3.12-alpine AS production
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-RUN groupadd --system --gid 10001 app \
-    && useradd --system --uid 10001 --gid app --home-dir /home/app --create-home \
-        --shell /usr/sbin/nologin app
+RUN apk add --no-cache libpq \
+    && addgroup -S -g 10001 app \
+    && adduser -S -H -u 10001 -G app -s /sbin/nologin appuser
 
 COPY --from=builder /install /usr/local
-COPY --chown=app:app app ./app
-COPY --chown=app:app templates ./templates
-COPY --chown=app:app static ./static
-COPY --chown=app:app app.py .
+COPY --chown=appuser:app app/ ./app/
+COPY --chown=appuser:app templates/ ./templates/
+COPY --chown=appuser:app static/ ./static/
+COPY --chown=appuser:app app.py .
 
-USER 10001:10001
+USER appuser
+
 EXPOSE 5000
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
