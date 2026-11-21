@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="A Flask and PostgreSQL Docker project dashboard.">
+    <title>Container Dashboard | RAB Tech Academy</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="{{ url_for('main.index') }}">
+        <span class="brand-mark" aria-hidden="true">RT</span>
+        <span>RAB Tech Academy</span>
+      </a>
+      <span class="project-label">Task 03 · Containerization</span>
+    </header>
+
+    <main class="page">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Flask + PostgreSQL + Docker</p>
+          <h1>Container Dashboard</h1>
+          <p class="hero-copy">A small, live dashboard for the multi-stage containerization project.</p>
+        </div>
+        <a class="health-link" href="{{ url_for('main.health') }}">
+          <span class="pulse" aria-hidden="true"></span>
+          Health API
+          <span aria-hidden="true">↗</span>
+        </a>
+      </section>
+
+      {% if notice == "created" %}
+        <div class="notice success" role="status">Record added successfully.</div>
+      {% elif notice == "invalid" %}
+        <div class="notice warning" role="alert">Enter a name between 1 and 120 characters.</div>
+      {% elif notice == "unavailable" %}
+        <div class="notice warning" role="alert">The database is unavailable. The record was not saved.</div>
+      {% endif %}
+
+      <section class="status-grid" aria-label="Application status">
+        <article class="status-card">
+          <div class="status-icon app-icon" aria-hidden="true">APP</div>
+          <div>
+            <p class="card-label">Flask application</p>
+            <p class="status-value"><span class="status-dot online"></span>{{ application_status }}</p>
+            <p class="card-detail">Serving requests on port 5000</p>
+          </div>
+        </article>
+        <article class="status-card">
+          <div class="status-icon db-icon" aria-hidden="true">DB</div>
+          <div>
+            <p class="card-label">PostgreSQL database</p>
+            <p class="status-value">
+              {% if database_connected %}
+                <span class="status-dot online"></span>Connected
+              {% else %}
+                <span class="status-dot offline"></span>Unavailable
+              {% endif %}
+            </p>
+            <p class="card-detail">Database: projectdb · Table: records</p>
+          </div>
+        </article>
+      </section>
+
+      <section class="content-grid">
+        <article class="panel records-panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">PostgreSQL</p>
+              <h2>Recent records</h2>
+            </div>
+            <span class="count-badge">{{ records|length }} shown</span>
+          </div>
+
+          {% if database_connected and records %}
+            <div class="record-list">
+              {% for record in records %}
+                <div class="record-row">
+                  <span class="record-id">#{{ record.id }}</span>
+                  <span class="record-name">{{ record.name }}</span>
+                  <time class="record-time" datetime="{{ record.created_at.isoformat() }}">
+                    {{ record.created_at.strftime("%b %d, %Y · %H:%M UTC") }}
+                  </time>
+                </div>
+              {% endfor %}
+            </div>
+          {% elif database_connected %}
+            <div class="empty-state">
+              <span class="empty-icon" aria-hidden="true">○</span>
+              <p>No records yet.</p>
+              <span>Add the first record using the form.</span>
+            </div>
+          {% else %}
+            <div class="empty-state">
+              <span class="empty-icon offline-text" aria-hidden="true">!</span>
+              <p>Cannot load records.</p>
+              <span>Check the database service and its health status.</span>
+            </div>
+          {% endif %}
+        </article>
+
+        <aside class="panel add-panel">
+          <p class="eyebrow">Add to database</p>
+          <h2>Create a record</h2>
+          <p class="form-copy">Enter a name to save a new record in PostgreSQL.</p>
+          <form action="{{ url_for('main.create_record_from_form') }}" method="post">
+            <label for="name">Name</label>
+            <input id="name" name="name" type="text" maxlength="120"
+                   placeholder="e.g. Flask application" required>
+            <button type="submit" {% if not database_connected %}disabled{% endif %}>
+              Add record <span aria-hidden="true">→</span>
+            </button>
+          </form>
+          <p class="form-hint">Names can contain up to 120 characters.</p>
+        </aside>
+      </section>
+
+      <section class="info-strip" aria-label="Health check details">
+        <span class="info-mark" aria-hidden="true">i</span>
+        <p><strong>Health check:</strong> <code>GET /health</code> verifies both the Flask app and its PostgreSQL connection. The endpoint returns HTTP 503 if the database is unavailable.</p>
+      </section>
+
+      <footer>
+        <span>RAB Tech Academy · Task 03</span>
+        <span>Flask · PostgreSQL · Docker Compose</span>
+      </footer>
+    </main>
+  </body>
+</html>
