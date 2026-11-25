@@ -2,6 +2,7 @@
 
 from flask import Flask
 
+from app.metrics import register_metrics
 from app.routes import bp
 
 
@@ -13,6 +14,7 @@ def create_app():
     )
     application.config["MAX_CONTENT_LENGTH"] = 16 * 1024
     application.register_blueprint(bp)
+    register_metrics(application)
     return application
 
 
